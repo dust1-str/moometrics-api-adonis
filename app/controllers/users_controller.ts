@@ -22,7 +22,7 @@ export default class UsersController {
   }
 
   async show({ params, response }: HttpContext) {
-    const user = await User.findBy(params.id)
+    const user = await User.find(params.id)
     
     if (!user) {
       return response.notFound({
@@ -60,7 +60,7 @@ export default class UsersController {
 
   async update({ params, request, response }: HttpContext) {
     const payload = await request.validateUsing(updateUserValidator)
-    const user = await User.findBy(params.id)
+    const user = await User.find(params.id)
 
     if (!user) {
       return response.notFound({
@@ -81,7 +81,7 @@ export default class UsersController {
   }
 
   async destroy({ params, response }: HttpContext) {
-    const user = await User.findBy(params.id)
+    const user = await User.find(params.id)
 
     if (!user) {
       return response.notFound({

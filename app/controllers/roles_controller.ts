@@ -41,7 +41,7 @@ export default class RolesController {
   }
 
   async show({ params, response }: HttpContext) {
-    const role = await Role.findBy(params.id)
+    const role = await Role.find(params.id)
 
     if (!role) {
       return response.notFound({
@@ -60,7 +60,7 @@ export default class RolesController {
 
   async update({ params, request, response }: HttpContext) {
     const payload = await request.validateUsing(updateRoleValidator)
-    const role = await Role.findBy(params.id)
+    const role = await Role.find(params.id)
 
     if (!role) {
       return response.notFound({
@@ -81,7 +81,7 @@ export default class RolesController {
   }
 
   async destroy({ params, response }: HttpContext) {
-    const role = await Role.findBy(params.id)
+    const role = await Role.find(params.id)
 
     if (!role) {
       return response.notFound({

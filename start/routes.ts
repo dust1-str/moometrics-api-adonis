@@ -12,6 +12,8 @@ import { middleware } from '#start/kernel'
 const UsersController = () => import('#controllers/users_controller')
 const AuthController = () => import('#controllers/auth_controller')
 const RolesController = () => import('#controllers/roles_controller')
+const ChannelsController = () => import('#controllers/channels_controller')
+const MessagesController = () => import('#controllers/messages_controller')
 
 // Rutas Auth
 router.group(() => {
@@ -37,4 +39,24 @@ router.group(() => {
   router.delete('/:id', [RolesController, 'destroy'])      
 }).prefix('/roles').use(middleware.auth())
 
+// Rutas Channels (Chat)
+router.group(() => {
+  router.get('/', [ChannelsController, 'index'])
+  router.post('/:id', [ChannelsController, 'store'])
+  router.get('/:id', [ChannelsController, 'show'])
+}).prefix('/channels').use(middleware.auth())
+
+// Rutas Messages (Chat)
+router.group(() => {
+  router.get('/recent', [MessagesController, 'recent'])
+  // router.get('/:id', [MessagesController, 'show'])
+  // router.put('/:id', [MessagesController, 'update'])
+  // router.delete('/:id', [MessagesController, 'destroy'])
+}).prefix('/messages').use(middleware.auth())
+
+// Rutas Messages por Channel (Chat)
+router.group(() => {
+  router.get('/:channelId/messages', [MessagesController, 'index'])
+  router.post('/:channelId/messages', [MessagesController, 'store'])
+}).prefix('/channels').use(middleware.auth())
 
