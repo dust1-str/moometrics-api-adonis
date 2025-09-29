@@ -13,12 +13,6 @@ const UsersController = () => import('#controllers/users_controller')
 const AuthController = () => import('#controllers/auth_controller')
 const RolesController = () => import('#controllers/roles_controller')
 
-router.get('/', async () => {
-  return {
-    hello: 'world',
-  }
-})
-
 // Rutas Auth
 router.group(() => {
   router.post('/register', [AuthController, 'register']) 
