@@ -4,7 +4,7 @@ import User from '#models/user'
 export default class AuthController {
   async register({ request, response }: HttpContext) {
     try {
-      const payload = request.only(['name', 'email', 'password', 'roleId'])
+      const payload = request.only(['name', 'email', 'password'])
 
       const existingUser = await User.findBy('email', payload.email)
       if (existingUser) {
@@ -13,20 +13,19 @@ export default class AuthController {
         })
       }
 
-      const user = await User.create(payload)
-      await user.load('role')
+      const user = await User.create({
+        ...payload,
+        roleId: 3
+      })
       
       return response.created({
+        status: 'success',
         message: 'Usuario registrado exitosamente',
-        data: {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          role: user.role
-        }
+        data: user
       })
     } catch (error) {
       return response.badRequest({
+        status: 'error',
         message: 'Error al registrar usuario',
         error: error.message
       })
@@ -35,7 +34,18 @@ export default class AuthController {
 
   async login({ request, auth, response }: any) {
       const { email, password } = request.only(['email', 'password'])
-      const user = await User.verifyCredentials(email, password)
+      let user;
+
+      try {
+        user = await User.verifyCredentials(email, password)
+      } catch (error) {
+        return response.unauthorized({
+          status: 'error',
+          message: 'Credenciales inválidas',
+          data: []
+        })
+      }
+      
       const token = await auth.use('jwt').generate(user)
 
       return response.ok({

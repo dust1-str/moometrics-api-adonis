@@ -10,7 +10,7 @@ export const createUserValidator = vine.compile(
       .string()
       .trim()
       .minLength(2)
-      .maxLength(100),
+      .maxLength(50),
     email: vine
       .string()
       .trim()
@@ -23,8 +23,7 @@ export const createUserValidator = vine.compile(
     password: vine
       .string()
       .minLength(8)
-      .maxLength(64)
-      .confirmed(),
+      .maxLength(16),
     roleId: vine
       .number()
       .positive()
@@ -45,7 +44,7 @@ export const updateUserValidator = vine.compile(
       .string()
       .trim()
       .minLength(2)
-      .maxLength(100)
+      .maxLength(50)
       .optional(),
     email: vine
       .string()
@@ -64,8 +63,7 @@ export const updateUserValidator = vine.compile(
     password: vine
       .string()
       .minLength(8)
-      .maxLength(64)
-      .confirmed()
+      .maxLength(16)
       .optional(),
     roleId: vine
       .number()

@@ -12,6 +12,10 @@ export default class extends BaseSeeder {
       {
         name: 'dev',
         description: 'Desarrollador con permisos de desarrollo y testing'
+      },
+      {
+        name: 'user',
+        description: 'Usuario con permisos básicos'
       }
     ])
   }

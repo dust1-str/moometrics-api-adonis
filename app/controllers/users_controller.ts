@@ -4,99 +4,124 @@ import { createUserValidator, updateUserValidator } from '#validators/user'
 
 export default class UsersController {
   async index({ response }: HttpContext) {
-    const users = await User.all()
+    try {
+      const users = await User.all()
 
-    if (!users) {
+      return response.ok({
+        status: 'success',
+        message: 'Usuarios obtenidos con éxito',
+        data: users
+      })
+    } catch (error) {
       return response.internalServerError({
         status: 'error',
         message: 'Error al obtener los usuarios',
-        data: [],
+        data: error.message
       })
     }
-      
-    return response.ok({
-      status: 'success',
-      message: 'Usuarios obtenidos con éxito',
-      data: users
-    })
   }
 
   async show({ params, response }: HttpContext) {
-    const user = await User.find(params.id)
-    
-    if (!user) {
-      return response.notFound({
+    try {
+      const user = await User.find(params.id)
+
+      if (!user) {
+        return response.notFound({
+          status: 'error',
+          message: 'Usuario no encontrado',
+          data: []
+        })
+      }
+
+      return response.ok({
+        status: 'success',
+        message: 'Usuario obtenido con éxito',
+        data: user
+      })
+    } catch (error) {
+      return response.internalServerError({
         status: 'error',
-        message: 'Usuario no encontrado',
-        data: []
+        message: 'Error al obtener el usuario',
+        data: error.message
       })
     }
-
-    return response.ok({
-      status: 'success',
-      message: 'Usuario obtenido con éxito',
-      data: user
-    })
   }
 
   async store({ request, response }: HttpContext) {
     const payload = await request.validateUsing(createUserValidator)
-    const user = await User.create(payload)
 
-    if (!user) {
+    try {
+        const user = await User.create(payload)
+        return response.created({
+          status: 'success',
+          message: 'Usuario creado con éxito',
+          data: user
+        })
+    } catch (error) {
       return response.internalServerError({
         status: 'error',
         message: 'Error al crear el usuario',
-        data: [],
+        data: error.message
       })
     }
-
-    return response.created({
-      status: 'success',
-      message: 'Usuario creado con éxito',
-      data: user
-    })
   }
 
   async update({ params, request, response }: HttpContext) {
     const payload = await request.validateUsing(updateUserValidator)
-    const user = await User.find(params.id)
 
-    if (!user) {
-      return response.notFound({
+    try {
+      const user = await User.find(params.id)
+
+      if (!user) {
+        return response.notFound({
+          status: 'error',
+          message: 'Usuario no encontrado',
+          data: []
+        })
+      }
+
+      user.merge(payload)
+      await user.save()
+
+      return response.ok({
+        status: 'success',
+        message: 'Usuario actualizado con éxito',
+        data: user
+      })
+    } catch (error) {
+      return response.internalServerError({
         status: 'error',
-        message: 'Usuario no encontrado',
-        data: []
+        message: 'Error al actualizar el usuario',
+        data: error.message
       })
     }
-
-    user.merge(payload)
-    await user.save()
-
-    return response.ok({
-      status: 'success',
-      message: 'Usuario actualizado con éxito',
-      data: user
-    })
   }
 
   async destroy({ params, response }: HttpContext) {
-    const user = await User.find(params.id)
+    try {
+      const user = await User.find(params.id)
 
-    if (!user) {
-      return response.notFound({
-        status: 'error',
-        message: 'Usuario no encontrado',
+      if (!user) {
+        return response.notFound({
+          status: 'error',
+          message: 'Usuario no encontrado',
+          data: []
+        })
+      }
+
+      await user.delete()
+      
+      return response.ok({
+        status: 'success',
+        message: 'Usuario eliminado con éxito',
         data: []
       })
+    } catch (error) {
+      return response.internalServerError({
+        status: 'error',
+        message: 'Error al eliminar el usuario',
+        data: error.message
+      })
     }
-
-    await user.delete()
-    
-    return response.ok({
-      status: 'success',
-      message: 'Usuario eliminado con éxito',
-      data: []
-    })
   }
 }
