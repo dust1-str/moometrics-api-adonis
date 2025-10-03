@@ -27,49 +27,63 @@ export default class ChannelsController {
     }
   }
 
-async store({ request, params, response }: HttpContext) {
-    const payload = await request.validateUsing(createChannelValidator)
-    const user = await User.find(params.id)
-
-    if (!user) {
-      return response.notFound({
-        status: 'error',
-        message: 'El usuario que crea el canal no existe',
-        data: []
-     })
-  }
-      
-    const channel = await Channel.create({
-        ...payload,
-        createdBy: user.id
-    })
-      
-      await channel.load('creator', (query) => {
-        query.select('id', 'name', 'email')
-      })
-      
-      return response.created({
-        status: 'success',
-        message: 'Canal creado con éxito',
-        data: channel
-      })
-  }
-
   async show({ params, response }: HttpContext) {
-    const channel = await Channel.find(params.id)
+      try {
+        const channel = await Channel.find(params.id)
 
-    if (!channel) {
-      return response.notFound({
-        status: 'error',
-        message: 'Canal no encontrado',
-        data: []
-      })
-    }
+        if (!channel) {
+          return response.notFound({
+            status: 'error',
+            message: 'Canal no encontrado',
+            data: []
+          })
+        }
 
-    return response.ok({
-      status: 'success',
-      message: 'Canal obtenido con éxito',
-      data: channel
-    })
+        return response.ok({
+          status: 'success',
+          message: 'Canal obtenido con éxito',
+          data: channel
+        })
+      } catch (error) {
+        return response.internalServerError({
+          status: 'error',
+          message: 'Error al obtener el canal',
+          data: error.message
+        })
+      }
+  }
+
+  async store({ request, params, response }: HttpContext) {
+      const payload = await request.validateUsing(createChannelValidator)
+
+      try {
+        const user = await User.find(params.id)
+
+        if (!user) {
+          return response.notFound({
+            status: 'error',
+            message: 'El usuario que crea el canal no existe',
+            data: []
+        })
+        }
+          
+        const channel = await Channel.create({
+            ...payload,
+            createdBy: user.id,
+            isActive: true
+        })
+          
+        return response.created({
+          status: 'success',
+          message: 'Canal creado con éxito',
+          data: channel
+        })
+      } catch (error) {
+        return response.internalServerError({
+          status: 'error',
+          message: 'Error al crear el canal',
+          data: error.message
+        })
+      }
   }
 }
