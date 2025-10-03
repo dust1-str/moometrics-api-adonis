@@ -254,15 +254,14 @@ export default class MessagesController {
       
       return response.ok({
         status: 'success',
-        message: 'Recent messages retrieved successfully',
+        message: 'Mensajes recientes obtenidos con éxito',
         data: messages
       })
     } catch (error) {
       return response.internalServerError({
         status: 'error',
-        message: 'Failed to retrieve recent messages',
-        data: null,
-        error: error.message
+        message: 'Error al obtener los mensajes recientes',
+        data: []
       })
     }
   }
