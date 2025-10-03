@@ -14,6 +14,7 @@ const AuthController = () => import('#controllers/auth_controller')
 const RolesController = () => import('#controllers/roles_controller')
 const ChannelsController = () => import('#controllers/channels_controller')
 const MessagesController = () => import('#controllers/messages_controller')
+const StablesController = () => import('#controllers/stables_controller')
 
 // Rutas Auth
 router.group(() => {
@@ -59,4 +60,21 @@ router.group(() => {
   router.get('/:channelId/messages', [MessagesController, 'index'])
   router.post('/:channelId/messages', [MessagesController, 'store'])
 }).prefix('/channels').use(middleware.auth())
+
+// Rutas Stables
+router.group(() => {
+  router.get('/', [StablesController, 'index'])
+  router.post('/', [StablesController, 'store'])
+  router.get('/active', [StablesController, 'active'])
+  router.get('/:id', [StablesController, 'show'])
+  router.put('/:id', [StablesController, 'update'])
+  router.delete('/:id', [StablesController, 'destroy'])
+  router.get('/:id/channels', [StablesController, 'channels'])
+}).prefix('/stables').use(middleware.auth())
+
+router.get('/', async () => {
+  return {
+    hello: 'world',
+  }
+})
 

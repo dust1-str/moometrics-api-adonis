@@ -2,6 +2,7 @@ import { BaseModel, belongsTo, column, hasMany } from '@adonisjs/lucid/orm'
 import type { BelongsTo, HasMany } from '@adonisjs/lucid/types/relations'
 import User from './user.js'
 import Message from './message.js'
+import Stable from './stable.js'
 
 export default class Channel extends BaseModel {
   @column({ isPrimary: true })
@@ -17,6 +18,9 @@ export default class Channel extends BaseModel {
   declare createdBy: number
 
   @column()
+  declare stableId: number | null
+
+  @column()
   declare isActive: boolean
 
   // Relaciones
@@ -24,6 +28,9 @@ export default class Channel extends BaseModel {
     foreignKey: 'createdBy'
   })
   declare creator: BelongsTo<typeof User>
+
+  @belongsTo(() => Stable)
+  declare stable: BelongsTo<typeof Stable>
 
   @hasMany(() => Message)
   declare messages: HasMany<typeof Message>

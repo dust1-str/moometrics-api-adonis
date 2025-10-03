@@ -15,7 +15,14 @@ export const createChannelValidator = vine.compile(
         const channel = await db.from('channels').where('name', value).first()
         return !channel
       }),
-    description: vine.string().trim().maxLength(500).optional()
+    description: vine.string().trim().maxLength(500).optional(),
+    stableId: vine
+      .number()
+      .positive()
+      .exists(async (db, value) => {
+        const stable = await db.from('stables').where('id', value).where('is_active', true).first()
+        return !!stable
+      })
   })
 )
 
@@ -40,6 +47,14 @@ export const updateChannelValidator = vine.compile(
       })
       .optional(),
     description: vine.string().maxLength(500).optional(),
+    stableId: vine
+      .number()
+      .positive()
+      .exists(async (db, value) => {
+        const stable = await db.from('stables').where('id', value).where('is_active', true).first()
+        return !!stable
+      })
+      .optional(),
     isActive: vine.boolean().optional()
   })
 )
