@@ -9,7 +9,6 @@ export default class MessagesController {
    */
   async index({ params, request, response }: HttpContext) {
     try {
-      // Verify channel exists and is active
       await Channel.query()
         .where('id', params.channelId)
         .where('isActive', true)
@@ -26,23 +25,22 @@ export default class MessagesController {
       
       return response.ok({
         status: 'success',
-        message: 'Messages retrieved successfully',
+        message: 'Mensajes obtenidos con éxito',
         data: messages
       })
     } catch (error) {
       if (error.code === 'E_ROW_NOT_FOUND') {
         return response.notFound({
           status: 'error',
-          message: 'Channel not found',
-          data: null
+          message: 'Canal no encontrado',
+          data: []
         })
       }
       
       return response.internalServerError({
         status: 'error',
-        message: 'Failed to retrieve messages',
-        data: null,
-        error: error.message
+        message: 'Error al obtener los mensajes',
+        data: error.message
       })
     }
   }
@@ -55,7 +53,6 @@ export default class MessagesController {
       const user = auth.getUserOrFail()
       console.log(user)
       
-      // Verify channel exists and is active
       const channel = await Channel.query()
         .where('id', params.channelId)
         .where('isActive', true)
@@ -69,42 +66,24 @@ export default class MessagesController {
         channelId: channel.id
       })
       
-      await message.load('user', (query) => {
-        query.select('id', 'name', 'email')
-      })
-      
-      await message.load('channel', (query) => {
-        query.select('id', 'name')
-      })
-      
       return response.created({
         status: 'success',
-        message: 'Message sent successfully',
+        message: 'Mensaje enviado con éxito',
         data: message
       })
     } catch (error) {
       if (error.code === 'E_ROW_NOT_FOUND') {
         return response.notFound({
           status: 'error',
-          message: 'Channel not found',
-          data: null
-        })
-      }
-      
-      if (error.code === 'E_VALIDATION_ERROR') {
-        return response.badRequest({
-          status: 'error',
-          message: 'Validation failed',
-          data: null,
-          errors: error.messages
+          message: 'Canal no encontrado',
+          data: []
         })
       }
       
       return response.internalServerError({
         status: 'error',
-        message: 'Failed to send message',
-        data: null,
-        error: error.message
+        message: 'Error al enviar el mensaje',
+        data: error.message
       })
     }
   }
