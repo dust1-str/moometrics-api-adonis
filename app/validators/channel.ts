@@ -47,14 +47,6 @@ export const updateChannelValidator = vine.compile(
       })
       .optional(),
     description: vine.string().maxLength(500).optional(),
-    stableId: vine
-      .number()
-      .positive()
-      .exists(async (db, value) => {
-        const stable = await db.from('stables').where('id', value).where('is_active', true).first()
-        return !!stable
-      })
-      .optional(),
     isActive: vine.boolean().optional()
   })
 )

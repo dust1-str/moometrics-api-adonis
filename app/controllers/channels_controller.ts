@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import Channel from '#models/channel'
-import { createChannelValidator } from '#validators/channel'
+import { createChannelValidator, updateChannelValidator } from '#validators/channel'
 import User from '#models/user'
 
 export default class ChannelsController {
@@ -85,5 +85,36 @@ export default class ChannelsController {
           data: error.message
         })
       }
+  }
+
+  async update({ params, request, response }: HttpContext) {
+    const payload = await request.validateUsing(updateChannelValidator)
+
+    try {
+      const channel = await Channel.find(params.id)
+
+      if (!channel) {
+        return response.notFound({
+          status: 'error',
+          message: 'Canal no encontrado',
+          data: []
+        })
+      }
+
+      channel.merge(payload)
+      await channel.save()
+
+      return response.ok({
+        status: 'success',
+        message: 'Canal actualizado con éxito',
+        data: channel
+      })
+    } catch (error) {
+      return response.internalServerError({
+        status: 'error',
+        message: 'Error al actualizar el canal',
+        data: error.message
+      })
+    }
   }
 }
