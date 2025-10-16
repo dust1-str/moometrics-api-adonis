@@ -45,6 +45,7 @@ router.group(() => {
   router.get('/', [ChannelsController, 'index'])
   router.post('/:id', [ChannelsController, 'store'])
   router.get('/:id', [ChannelsController, 'show'])
+  router.put('/:id', [ChannelsController, 'update'])
 }).prefix('/channels').use(middleware.auth())
 
 // Rutas Messages (Chat)
