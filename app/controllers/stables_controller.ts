@@ -157,10 +157,7 @@ export default class StablesController {
     try {
       const stable = await Stable.query()
         .where('id', params.id)
-        .where('isActive', true)
-        .preload('channels', (query) => {
-          query.where('isActive', true).orderBy('name', 'asc')
-        })
+        .preload('channels')
         .first()
       
       if (!stable) {
