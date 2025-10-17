@@ -1,7 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import Channel from '#models/channel'
 import { createChannelValidator, updateChannelValidator } from '#validators/channel'
-import User from '#models/user'
 
 export default class ChannelsController {
   async index({ response }: HttpContext) {
@@ -53,11 +52,11 @@ export default class ChannelsController {
       }
   }
 
-  async store({ request, params, response }: HttpContext) {
+  async store({ request, response, auth }: HttpContext) {
       const payload = await request.validateUsing(createChannelValidator)
 
       try {
-        const user = await User.find(params.id)
+        const user = auth.getUserOrFail()
 
         if (!user) {
           return response.notFound({

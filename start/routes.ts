@@ -43,7 +43,7 @@ router.group(() => {
 // Rutas Channels (Chat)
 router.group(() => {
   router.get('/', [ChannelsController, 'index'])
-  router.post('/:id', [ChannelsController, 'store'])
+  router.post('/', [ChannelsController, 'store'])
   router.get('/:id', [ChannelsController, 'show'])
   router.put('/:id', [ChannelsController, 'update'])
 }).prefix('/channels').use(middleware.auth())
