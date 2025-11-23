@@ -27,5 +27,8 @@ export default class User extends compose(BaseModel, AuthFinder) {
   @column()
   declare roleId: number
 
+  @column()
+  declare fcmToken: string | null
+
   @belongsTo(() => Role) declare role: BelongsTo<typeof Role>
 }

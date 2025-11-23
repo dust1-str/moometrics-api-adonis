@@ -1,6 +1,8 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import Stable from '#models/stable'
 import { createStableValidator, updateStableValidator } from '#validators/stable'
+import NotificationService from '#services/NotificationService'
+import User from '#models/user'
 
 export default class StablesController {
   async index({ response }: HttpContext) {
@@ -22,11 +24,23 @@ export default class StablesController {
     }
   }
 
-  async store({ request, response }: HttpContext) {
+  async store({ request, response, auth }: HttpContext) {
     const payload = await request.validateUsing(createStableValidator)
 
     try {      
       const stable = await Stable.create(payload)
+
+      const user = auth.user! as User  // 👈 usuario autenticado
+
+    // Enviar notificación si el usuario tiene token
+    if (user.fcmToken) {
+      await NotificationService.sendToToken(
+        user.fcmToken,
+        'Nuevo establo creado',
+        'Has registrado un nuevo establo en el sistema.',
+        { type: 'stable', id: stable.id }
+      )
+    }
       
       return response.created({
         status: 'success',
