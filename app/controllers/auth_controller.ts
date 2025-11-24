@@ -33,7 +33,7 @@ export default class AuthController {
   }
 
   async login({ request, auth, response }: any) {
-      const { email, password } = request.only(['email', 'password'])
+      const { email, password, fcm_token } = request.only(['email', 'password', 'fcmToken'])
       let user;
 
       try {
@@ -47,6 +47,11 @@ export default class AuthController {
       }
       
       const token = await auth.use('jwt').generate(user)
+      const userUpdate = await User.findBy('email', email)
+      if (userUpdate) {
+        userUpdate.fcmToken = fcm_token
+        await userUpdate.save()
+      }
 
       return response.ok({
         status: 'success',
