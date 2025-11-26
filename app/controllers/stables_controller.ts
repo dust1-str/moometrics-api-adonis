@@ -38,7 +38,10 @@ export default class StablesController {
         user.fcmToken,
         'Nuevo establo creado',
         'Has registrado un nuevo establo en el sistema.',
-        { type: 'stable', id: stable.id }
+        { 
+          type: 'stable', 
+          id: String(stable.id)  // Convertir a string
+        }
       )
     }
       
