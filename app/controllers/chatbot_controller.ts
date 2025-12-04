@@ -1,6 +1,11 @@
 import type { HttpContext } from '@adonisjs/core/http'
+import db from '@adonisjs/lucid/services/db'
 
 export default class ChatbotController {
+  private eventTypes = [
+    'breeding', 'birth', 'diagnosis', 'abortion', 'culling', 'dryoff',
+    'fresh', 'hoof', 'move', 'pregcheck', 'medical', 'vaccination', 'treatment'
+  ]
   async sendCommand({ request, response }: HttpContext) {
     try {
       const { command } = request.only(['command'])
@@ -89,26 +94,27 @@ export default class ChatbotController {
     }
   }
 
-  private handleShowEvents() {
+  private async handleShowEvents() {
+    const counts = await db.from('events')
+      .select('event_type')
+      .count('* as total')
+      .groupBy('event_type')
+
+    const countMap = counts.reduce((acc, row) => {
+      acc[row.event_type] = Number(row.total)
+      return acc
+    }, {})
+
+    const result = this.eventTypes.map(type => ({
+      type,
+      count: countMap[type] ?? 0
+    }))
+
     return {
       command: 'showEvents',
       type: 'events',
-      stableName: 'Establo Principal',
-      period: 'este mes (Diciembre 2025)',
-      veterinaryEvents: [
-        { type: 'diagnosis', count: 15 },
-        { type: 'treatment', count: 22 }
-      ],
-      reproductiveEvents: [
-        { type: 'breeding', count: 8 },
-        { type: 'pregnancy_check', count: 12 },
-        { type: 'birth', count: 2 }
-      ],
-      managementEvents: [
-        { type: 'feeding', count: 150 },
-        { type: 'cleaning', count: 45 }
-      ],
-      totalEvents: 256
+      events: result,
+      totalEvents: result.reduce((s, e) => s + e.count, 0)
     }
   }
 
