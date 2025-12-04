@@ -2,6 +2,8 @@ import { BaseModel, column } from '@adonisjs/lucid/orm'
 import { DateTime } from 'luxon'
 
 export default class Inventory extends BaseModel {
+  public static table = 'inventory'
+  
   @column({ isPrimary: true })
   declare apiid: number
 
