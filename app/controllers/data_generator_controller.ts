@@ -481,12 +481,19 @@ export default class DataGeneratorController {
       }
 
     } catch (error) {
+      console.error('Clear data error:', error)
       return response.internalServerError({
         status: 'error',
         message: 'Error clearing data',
-        data: error.message
+        data: {
+          message: error.message || 'Unknown error',
+          stack: error.stack,
+          name: error.name,
+          cause: error.cause,
+          details: error
+        }
       })
     }
   }
-  
+
 }
