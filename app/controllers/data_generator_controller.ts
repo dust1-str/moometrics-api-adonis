@@ -117,7 +117,7 @@ export default class DataGeneratorController {
 
   async generateInventory({ request, response }: HttpContext) {
     try {
-      const { startDate, endDate } = await request.validateUsing(dateRangeValidator)
+      const { startDate, endDate, stable_id } = await request.validateUsing(dateRangeValidator)
 
       const start = new Date(startDate)
       const end = new Date(endDate)
@@ -140,7 +140,7 @@ export default class DataGeneratorController {
         
         const cow: InventoryRecord = {
           apiid: i,
-          stable_id: this.getRandomInt(1, 10), // Assuming 10 stables
+          stable_id: stable_id,
           barnnm: `Cow-${String(i).padStart(4, '0')}`,
           bdate: this.formatDate(birthDate),
           bdateweek: this.formatDate(weekStart),
@@ -170,9 +170,10 @@ export default class DataGeneratorController {
 
       return response.created({
         status: 'success',
-        message: `${inventoryData.length} inventory records generated successfully`,
+        message: `${inventoryData.length} inventory records generated successfully for stable ${stable_id}`,
         data: {
           generated: inventoryData.length,
+          stable_id: stable_id,
           dateRange: { startDate, endDate }
         }
       })
@@ -188,7 +189,7 @@ export default class DataGeneratorController {
 
   async generateEvents({ request, response }: HttpContext) {
     try {
-      const { startDate, endDate } = await request.validateUsing(dateRangeValidator)
+      const { startDate, endDate, stable_id } = await request.validateUsing(dateRangeValidator)
 
       const start = new Date(startDate)
       const end = new Date(endDate)
@@ -201,13 +202,15 @@ export default class DataGeneratorController {
         })
       }
 
-      // Get existing inventory pky values
-      const inventory = await Database.from('inventory').select('pky', 'bdate', 'brd', 'sex')
+      // Get existing inventory pky values for the specified stable
+      const inventory = await Database.from('inventory')
+        .select('pky', 'bdate', 'brd', 'sex')
+        .where('stable_id', stable_id)
       
       if (inventory.length === 0) {
         return response.badRequest({
           status: 'error',
-          message: 'No inventory records found. Generate inventory first.',
+          message: `No inventory records found for stable_id ${stable_id}. Generate inventory first.`,
           data: []
         })
       }
@@ -306,9 +309,10 @@ export default class DataGeneratorController {
 
       return response.created({
         status: 'success',
-        message: `${finalEvents.length} event records generated successfully`,
+        message: `${finalEvents.length} event records generated successfully for stable ${stable_id}`,
         data: {
           generated: finalEvents.length,
+          stable_id: stable_id,
           dateRange: { startDate, endDate },
           eventTypes: this.eventTypes
         }
@@ -325,27 +329,126 @@ export default class DataGeneratorController {
 
   async clearData({ request, response }: HttpContext) {
     try {
-      const { table } = await request.validateUsing(clearDataValidator)
+      const { table, startDate, endDate, stable_id } = await request.validateUsing(clearDataValidator)
 
-      let deletedTables = []
-
-      if (table === 'inventory' || table === 'both') {
-        await Database.rawQuery('DELETE FROM events') // Delete events first due to foreign key
-        await Database.rawQuery('DELETE FROM inventory')
-        await Database.rawQuery('ALTER SEQUENCE pky_sequence RESTART WITH 1')
-        deletedTables.push('inventory', 'events')
-      } else if (table === 'events') {
-        await Database.rawQuery('DELETE FROM events')
-        deletedTables.push('events')
+      // Validate date range if provided
+      if ((startDate && !endDate) || (!startDate && endDate)) {
+        return response.badRequest({
+          status: 'error',
+          message: 'Both startDate and endDate must be provided when using date range deletion',
+          data: []
+        })
       }
 
-      return response.ok({
-        status: 'success',
-        message: `Data cleared successfully from: ${deletedTables.join(', ')}`,
-        data: {
-          clearedTables: deletedTables
+      if (startDate && endDate) {
+        const start = new Date(startDate)
+        const end = new Date(endDate)
+        if (start >= end) {
+          return response.badRequest({
+            status: 'error',
+            message: 'Start date must be before end date',
+            data: []
+          })
         }
-      })
+      }
+
+      let deletedTables: string[] = []
+      let deletedCounts = { inventory: 0, events: 0 }
+
+      if (startDate && endDate) {
+        // Delete by date range
+        if (table === 'inventory' || table === 'both') {
+          // Delete events first (foreign key constraint)
+          let eventsQuery = 'DELETE FROM events WHERE pky IN (SELECT pky FROM inventory WHERE bdate BETWEEN ? AND ?'
+          let inventoryQuery = 'DELETE FROM inventory WHERE bdate BETWEEN ? AND ?'
+          let params = [startDate, endDate]
+          
+          if (stable_id) {
+            eventsQuery += ' AND stable_id = ?'
+            inventoryQuery += ' AND stable_id = ?'
+            params.push(stable_id.toString())
+          }
+          
+          eventsQuery += ')'
+          
+          const eventsResult = await Database.rawQuery(eventsQuery, params)
+          deletedCounts.events = eventsResult.rowCount || 0
+          
+          const inventoryResult = await Database.rawQuery(inventoryQuery, params.slice(0, stable_id ? 3 : 2))
+          deletedCounts.inventory = inventoryResult.rowCount || 0
+          
+          deletedTables.push('inventory', 'events')
+        } else if (table === 'events') {
+          let eventsQuery = 'DELETE FROM events WHERE evdate BETWEEN ? AND ?'
+          let params = [startDate, endDate]
+          
+          if (stable_id) {
+            eventsQuery += ' AND pky IN (SELECT pky FROM inventory WHERE stable_id = ?)'
+            params.push(stable_id.toString())
+          }
+          
+          const eventsResult = await Database.rawQuery(eventsQuery, params)
+          deletedCounts.events = eventsResult.rowCount || 0
+          deletedTables.push('events')
+        }
+
+        return response.ok({
+          status: 'success',
+          message: `Data cleared successfully from: ${deletedTables.join(', ')} between ${startDate} and ${endDate}${stable_id ? ` for stable ${stable_id}` : ''}`,
+          data: {
+            clearedTables: deletedTables,
+            dateRange: { startDate, endDate },
+            stable_id: stable_id,
+            deletedCounts
+          }
+        })
+      } else {
+        // Delete all data (with optional stable_id filter)
+        if (table === 'inventory' || table === 'both') {
+          let eventsQuery = 'DELETE FROM events'
+          let inventoryQuery = 'DELETE FROM inventory'
+          let params: any[] = []
+          
+          if (stable_id) {
+            eventsQuery += ' WHERE pky IN (SELECT pky FROM inventory WHERE stable_id = ?)'
+            inventoryQuery += ' WHERE stable_id = ?'
+            params = [stable_id.toString()]
+          }
+          
+          const eventsResult = await Database.rawQuery(eventsQuery, params)
+          deletedCounts.events = eventsResult.rowCount || 0
+          
+          const inventoryResult = await Database.rawQuery(inventoryQuery, params)
+          deletedCounts.inventory = inventoryResult.rowCount || 0
+          
+          if (!stable_id) {
+            await Database.rawQuery('ALTER SEQUENCE pky_sequence RESTART WITH 1')
+          }
+          deletedTables.push('inventory', 'events')
+        } else if (table === 'events') {
+          let eventsQuery = 'DELETE FROM events'
+          let params: any[] = []
+          
+          if (stable_id) {
+            eventsQuery += ' WHERE pky IN (SELECT pky FROM inventory WHERE stable_id = ?)'
+            params = [stable_id.toString()]
+          }
+          
+          const eventsResult = await Database.rawQuery(eventsQuery, params)
+          deletedCounts.events = eventsResult.rowCount || 0
+          deletedTables.push('events')
+        }
+
+        return response.ok({
+          status: 'success',
+          message: `${stable_id ? 'Filtered' : 'All'} data cleared successfully from: ${deletedTables.join(', ')}${stable_id ? ` for stable ${stable_id}` : ''}`,
+          data: {
+            clearedTables: deletedTables,
+            stable_id: stable_id,
+            deletedCounts
+          }
+        })
+      }
 
     } catch (error) {
       return response.internalServerError({

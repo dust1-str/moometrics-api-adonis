@@ -6,7 +6,8 @@ import vine from '@vinejs/vine'
 export const dateRangeValidator = vine.compile(
   vine.object({
     startDate: vine.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/),
-    endDate: vine.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/)
+    endDate: vine.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/),
+    stable_id: vine.number().min(1)
   })
 )
 
@@ -15,6 +16,9 @@ export const dateRangeValidator = vine.compile(
  */
 export const clearDataValidator = vine.compile(
   vine.object({
-    table: vine.string().trim().in(['inventory', 'events', 'both'])
+    table: vine.string().trim().in(['inventory', 'events', 'both']),
+    startDate: vine.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    endDate: vine.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    stable_id: vine.number().min(1).optional()
   })
 )
