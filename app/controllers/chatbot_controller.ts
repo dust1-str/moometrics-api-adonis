@@ -1,6 +1,11 @@
 import type { HttpContext } from '@adonisjs/core/http'
+import db from '@adonisjs/lucid/services/db'
 
 export default class ChatbotController {
+  private eventTypes = [
+    'breeding', 'birth', 'diagnosis', 'abortion', 'culling', 'dryoff',
+    'fresh', 'hoof', 'move', 'pregcheck', 'medical', 'vaccination', 'treatment'
+  ]
   async sendCommand({ request, response }: HttpContext) {
     try {
       const { command } = request.only(['command'])
@@ -18,63 +23,30 @@ export default class ChatbotController {
 
       // Procesar comandos
       switch (commandLower) {
-        case '/ayuda':
-          botResponse = {
-            command: '/ayuda',
-            response: 'Comandos disponibles: /ayuda, /clima, /hora, /noticias, /saludo',
-            type: 'help'
-          }
+        case 'showinventory':
+          botResponse = this.handleShowInventory()
           break
 
-        case '/clima':
-          botResponse = {
-            command: '/clima',
-            response: 'Clima actual: 22°C, Soleado con algunas nubes. Humedad: 65%',
-            type: 'weather',
-            data: {
-              temperature: 22,
-              condition: 'Soleado',
-              humidity: 65
-            }
-          }
+        case 'showevents':
+          botResponse = this.handleShowEvents()
           break
 
-        case '/hora':
-          botResponse = {
-            command: '/hora',
-            response: `La hora actual es: ${new Date().toLocaleTimeString('es-ES')}`,
-            type: 'time',
-            data: {
-              timestamp: new Date().toISOString()
-            }
-          }
+        case 'getcowlist':
+          botResponse = this.handleGetCowList()
           break
 
-        case '/noticias':
-          botResponse = {
-            command: '/noticias',
-            response: 'Últimas noticias: Sector ganadero en crecimiento. Nuevas regulaciones para la salud animal. Aumento en precios de forraje.',
-            type: 'news',
-            data: [
-              { title: 'Sector ganadero en crecimiento', date: '2025-12-03' },
-              { title: 'Nuevas regulaciones para la salud animal', date: '2025-12-02' },
-              { title: 'Aumento en precios de forraje', date: '2025-12-01' }
-            ]
-          }
+        case 'getcowdetail':
+          botResponse = this.handleGetCowDetail()
           break
 
-        case '/saludo':
-          botResponse = {
-            command: '/saludo',
-            response: '¡Hola! Bienvenido a MooMetrics. ¿En qué puedo ayudarte hoy?',
-            type: 'greeting'
-          }
+        case 'searchcow':
+          botResponse = this.handleSearchCow()
           break
 
         default:
           return response.badRequest({
             status: 'error',
-            message: `Comando desconocido: ${command}. Usa /ayuda para ver los comandos disponibles`,
+            message: `Comando desconocido: ${command}. Comandos disponibles: showInventory, showEvents, getCowList, getCowDetail, searchCow`,
             data: []
           })
       }
@@ -90,6 +62,201 @@ export default class ChatbotController {
         message: 'Error al procesar el comando',
         data: error.message
       })
+    }
+  }
+
+  private handleShowInventory() {
+    return {
+      command: 'showInventory',
+      type: 'inventory',
+      stableName: 'Establo Principal',
+      summary: {
+        totalCows: 245,
+        females: 180,
+        males: 65
+      },
+      byBreed: [
+        { breed: 'Holstein', count: 120 },
+        { breed: 'Jersey', count: 75 },
+        { breed: 'Guernsey', count: 50 }
+      ],
+      byAge: [
+        { ageRange: '0-1 años', count: 30 },
+        { ageRange: '1-2 años', count: 45 },
+        { ageRange: '2-3 años', count: 85 },
+        { ageRange: '3+ años', count: 85 }
+      ],
+      byStatus: [
+        { status: 'Activa', count: 230 },
+        { status: 'Gestante', count: 12 },
+        { status: 'Descanso', count: 3 }
+      ]
+    }
+  }
+
+  private async handleShowEvents() {
+    const counts = await db.from('events')
+      .select('event_type')
+      .count('* as total')
+      .groupBy('event_type')
+
+    const countMap = counts.reduce((acc, row) => {
+      acc[row.event_type] = Number(row.total)
+      return acc
+    }, {})
+
+    const result = this.eventTypes.map(type => ({
+      type,
+      count: countMap[type] ?? 0
+    }))
+
+    return {
+      command: 'showEvents',
+      type: 'events',
+      events: result,
+      totalEvents: result.reduce((s, e) => s + e.count, 0)
+    }
+  }
+
+  private handleGetCowList() {
+    return {
+      command: 'getCowList',
+      type: 'cow_list',
+      cows: [
+        {
+          id: 1,
+          name: 'Bessie',
+          breed: 'Holstein',
+          age: '3 años',
+          sex: 'F',
+          barnName: 'Corral A'
+        },
+        {
+          id: 2,
+          name: 'Daisy',
+          breed: 'Jersey',
+          age: '2 años',
+          sex: 'F',
+          barnName: 'Corral B'
+        },
+        {
+          id: 3,
+          name: 'Molly',
+          breed: 'Guernsey',
+          age: '4 años',
+          sex: 'F',
+          barnName: 'Corral A'
+        },
+        {
+          id: 4,
+          name: 'Stella',
+          breed: 'Holstein',
+          age: '2 años',
+          sex: 'F',
+          barnName: 'Corral C'
+        },
+        {
+          id: 5,
+          name: 'Luna',
+          breed: 'Jersey',
+          age: '3 años',
+          sex: 'F',
+          barnName: 'Corral B'
+        },
+        {
+          id: 6,
+          name: 'Max',
+          breed: 'Holstein',
+          age: '5 años',
+          sex: 'M',
+          barnName: 'Corral D'
+        },
+        {
+          id: 7,
+          name: 'Rocky',
+          breed: 'Guernsey',
+          age: '6 años',
+          sex: 'M',
+          barnName: 'Corral D'
+        }
+      ],
+      pagination: {
+        currentPage: 1,
+        itemsPerPage: 7,
+        totalItems: 245,
+        totalPages: 35
+      }
+    }
+  }
+
+  private handleGetCowDetail() {
+    return {
+      command: 'getCowDetail',
+      type: 'cow_detail',
+      id: 1,
+      name: 'Bessie',
+      breed: 'Holstein',
+      sex: 'F',
+      birthDate: '2021-03-15',
+      age: '3 años',
+      barnName: 'Corral A',
+      lactationNumber: 2,
+      daysInMilk: 245,
+      dailyProduction: '32.5 litros',
+      events: {
+        diagnoses: 5,
+        pregnancyChecks: 3,
+        breedings: 2,
+        treatments: 8,
+        births: 1
+      },
+      lastEvent: {
+        type: 'pregnancy_check',
+        date: '2025-12-02T10:30:00Z',
+        technician: 'Dr. López',
+        status: 'Gestante'
+      }
+    }
+  }
+
+  private handleSearchCow() {
+    return {
+      command: 'searchCow',
+      type: 'search_result',
+      query: 'Holstein',
+      results: [
+        {
+          id: 1,
+          name: 'Bessie',
+          breed: 'Holstein',
+          sex: 'F'
+        },
+        {
+          id: 3,
+          name: 'Stella',
+          breed: 'Holstein',
+          sex: 'F'
+        },
+        {
+          id: 6,
+          name: 'Max',
+          breed: 'Holstein',
+          sex: 'M'
+        },
+        {
+          id: 8,
+          name: 'Clara',
+          breed: 'Holstein',
+          sex: 'F'
+        },
+        {
+          id: 12,
+          name: 'Nina',
+          breed: 'Holstein',
+          sex: 'F'
+        }
+      ],
+      totalFound: 5
     }
   }
 }
