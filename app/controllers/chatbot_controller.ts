@@ -96,12 +96,12 @@ export default class ChatbotController {
 
   private async handleShowEvents() {
     const counts = await db.from('events')
-      .select('event_type')
+      .select('eventtype')
       .count('* as total')
-      .groupBy('event_type')
+      .groupBy('eventtype')
 
     const countMap = counts.reduce((acc, row) => {
-      acc[row.event_type] = Number(row.total)
+      acc[row.eventtype] = Number(row.total)
       return acc
     }, {})
 
