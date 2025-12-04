@@ -137,10 +137,12 @@ export default class ChatbotController {
   }
 
   private async handleGetCowDetail(name: string) {
+    console.log('Fetching details for cow:', name)
     const cow = await db.from('inventory')
       .select('pky', 'barnnm', 'brd', 'bdate', 'sex')
       .where('barnnm', name)
       .first()
+    console.log('Cow details found:', cow)
     return {
       command: 'getCowDetail',
       type: 'cow_detail',
