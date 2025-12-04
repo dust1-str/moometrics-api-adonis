@@ -28,7 +28,7 @@ export default class ChatbotController {
           break
 
         case 'showevents':
-          botResponse = this.handleShowEvents()
+          botResponse = await this.handleShowEvents()
           break
 
         case 'getcowlist':
