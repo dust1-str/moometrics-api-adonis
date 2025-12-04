@@ -16,6 +16,7 @@ const ChannelsController = () => import('#controllers/channels_controller')
 const MessagesController = () => import('#controllers/messages_controller')
 const StablesController = () => import('#controllers/stables_controller')
 const ChatbotController = () => import('#controllers/chatbot_controller')
+const DataGeneratorController = () => import('#controllers/data_generator_controller')
 
 // Rutas Auth
 router.group(() => {
@@ -78,6 +79,13 @@ router.group(() => {
 router.group(() => {
   router.post('/command', [ChatbotController, 'sendCommand'])
 }).prefix('/chatbot').use(middleware.auth())
+
+// Rutas Data Generator (Generación de datos de prueba)
+router.group(() => {
+  router.post('/inventory', [DataGeneratorController, 'generateInventory'])
+  router.post('/events', [DataGeneratorController, 'generateEvents'])
+  router.delete('/clear', [DataGeneratorController, 'clearData'])
+}).prefix('/data-generator').use(middleware.auth())
 
 router.get('/', async () => {
   return {
