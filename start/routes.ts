@@ -15,6 +15,7 @@ const RolesController = () => import('#controllers/roles_controller')
 const ChannelsController = () => import('#controllers/channels_controller')
 const MessagesController = () => import('#controllers/messages_controller')
 const StablesController = () => import('#controllers/stables_controller')
+const ChatbotController = () => import('#controllers/chatbot_controller')
 
 // Rutas Auth
 router.group(() => {
@@ -72,6 +73,11 @@ router.group(() => {
   router.delete('/:id', [StablesController, 'destroy'])
   router.get('/:id/channels', [StablesController, 'channels'])
 }).prefix('/stables').use(middleware.auth())
+
+// Rutas Chatbot
+router.group(() => {
+  router.post('/command', [ChatbotController, 'sendCommand'])
+}).prefix('/chatbot').use(middleware.auth())
 
 router.get('/', async () => {
   return {
