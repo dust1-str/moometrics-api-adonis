@@ -10,7 +10,7 @@ interface DateRange {
 }
 
 interface InventoryRecord {
-  apiid: number
+  apiid?: number
   stable_id: number
   barnnm: string
   bdate: string
@@ -30,7 +30,7 @@ interface InventoryRecord {
 }
 
 interface EventRecord {
-  evid: number
+  evid?: number
   pky: number
   technician: number
   eventtype: string
@@ -141,9 +141,8 @@ export default class DataGeneratorController {
         const breed = this.getRandomElement(this.cattleBreeds)
         
         const cow: InventoryRecord = {
-          apiid: i,
           stable_id: stable_id,
-          barnnm: `Cow-${String(i).padStart(4, '0')}`,
+          barnnm: `Cow-${Date.now()}-${i}`,
           bdate: this.formatDate(birthDate),
           bdateweek: this.formatDate(weekStart),
           brd: breed,
@@ -260,7 +259,6 @@ export default class DataGeneratorController {
           }
 
           const event: EventRecord = {
-            evid: eventsData.length + 1,
             pky: cow.pky,
             technician: this.getRandomInt(1, 10),
             eventtype: eventType,
@@ -446,8 +444,10 @@ export default class DataGeneratorController {
             const deletedInventory = await Inventory.query().delete()
             deletedCounts.inventory = Array.isArray(deletedInventory) ? deletedInventory.length : deletedInventory
             
-            // Reset sequence only when deleting all data
+            // Reset sequences only when deleting all data
             await Database.rawQuery('ALTER SEQUENCE pky_sequence RESTART WITH 1')
+            await Database.rawQuery('ALTER SEQUENCE apiid_sequence RESTART WITH 1')
+            await Database.rawQuery('ALTER SEQUENCE evid_sequence RESTART WITH 1')
           }
           
           deletedTables.push('inventory', 'events')

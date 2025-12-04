@@ -4,8 +4,20 @@ CREATE SEQUENCE public.pky_sequence
     MINVALUE 1
     CACHE 1;
 
+CREATE SEQUENCE public.apiid_sequence
+    START WITH 1
+    INCREMENT BY 1
+    MINVALUE 1
+    CACHE 1;
+
+CREATE SEQUENCE public.evid_sequence
+    START WITH 1
+    INCREMENT BY 1
+    MINVALUE 1
+    CACHE 1;
+
 CREATE TABLE events (
-    evid integer,
+    evid integer DEFAULT nextval('public.evid_sequence'::regclass),
     pky bigint,
     technician integer,
     eventtype character varying, -- Tipos dnb abortions births breedings culls diagnosis dryoffs freshs hoofs moves pregchecks
@@ -42,7 +54,7 @@ CREATE TABLE events (
 );
 
 CREATE TABLE public.inventory (
-    apiid integer NOT NULL, 
+    apiid integer NOT NULL DEFAULT nextval('public.apiid_sequence'::regclass), 
     stable_id integer NOT NULL, 
     barnnm character varying(25),
     bdate date,  -- date actual
@@ -64,9 +76,15 @@ CREATE TABLE public.inventory (
 
 ALTER TABLE public.inventory
     ALTER COLUMN pky SET DEFAULT nextval('public.pky_sequence');
+ALTER TABLE public.inventory
+    ALTER COLUMN apiid SET DEFAULT nextval('public.apiid_sequence');
+ALTER TABLE public.events
+    ALTER COLUMN evid SET DEFAULT nextval('public.evid_sequence');
 ALTER TABLE ONLY public.inventory
     ADD CONSTRAINT inventory_pkey PRIMARY KEY (apiid);
 ALTER TABLE ONLY public.inventory
     ADD CONSTRAINT inventory_pky_key UNIQUE (pky);
+ALTER TABLE ONLY public.events
+    ADD CONSTRAINT events_pkey PRIMARY KEY (evid);
 ALTER TABLE ONLY public.events
     ADD CONSTRAINT fk_events_inventory FOREIGN KEY (pky) REFERENCES public.inventory(pky) NOT VALID;
