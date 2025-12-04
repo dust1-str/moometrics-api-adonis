@@ -8,7 +8,7 @@ export default class ChatbotController {
   ]
   async sendCommand({ request, response }: HttpContext) {
     try {
-      const { command, stable_id } = request.only(['command', 'stable_id'])
+      const { command, stable_id, name } = request.only(['command', 'stable_id', 'name'])
 
       if (!command) {
         return response.badRequest({
@@ -36,7 +36,7 @@ export default class ChatbotController {
           break
 
         case 'getcowdetail':
-          botResponse = this.handleGetCowDetail()
+          botResponse = this.handleGetCowDetail(name)
           break
 
         case 'searchcow':
@@ -136,33 +136,19 @@ export default class ChatbotController {
     }
   }
 
-  private handleGetCowDetail() {
+  private async handleGetCowDetail(name: string) {
+    const cow = await db.from('inventory')
+      .select('pky', 'barnnm', 'brd', 'bdate', 'sex')
+      .where('barnnm', name)
+      .first()
     return {
       command: 'getCowDetail',
       type: 'cow_detail',
-      id: 1,
-      name: 'Bessie',
-      breed: 'Holstein',
-      sex: 'F',
-      birthDate: '2021-03-15',
-      age: '3 años',
-      barnName: 'Corral A',
-      lactationNumber: 2,
-      daysInMilk: 245,
-      dailyProduction: '32.5 litros',
-      events: {
-        diagnoses: 5,
-        pregnancyChecks: 3,
-        breedings: 2,
-        treatments: 8,
-        births: 1
-      },
-      lastEvent: {
-        type: 'pregnancy_check',
-        date: '2025-12-02T10:30:00Z',
-        technician: 'Dr. López',
-        status: 'Gestante'
-      }
+      id: cow.pky,
+      name: cow.barnnm,
+      breed: cow.brd,
+      birthDate: cow.bdate,
+      sex: cow.sex
     }
   }
 
