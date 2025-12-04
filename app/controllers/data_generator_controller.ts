@@ -1,6 +1,8 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import Database from '@adonisjs/lucid/services/db'
 import { dateRangeValidator, clearDataValidator } from '#validators/data_generator'
+import Inventory from '#models/inventory'
+import Event from '#models/event'
 
 interface DateRange {
   startDate: string
@@ -358,37 +360,53 @@ export default class DataGeneratorController {
       if (startDate && endDate) {
         // Delete by date range
         if (table === 'inventory' || table === 'both') {
-          // Delete events first (foreign key constraint)
-          let eventsQuery = 'DELETE FROM events WHERE pky IN (SELECT pky FROM inventory WHERE bdate BETWEEN ? AND ?'
-          let inventoryQuery = 'DELETE FROM inventory WHERE bdate BETWEEN ? AND ?'
-          let params = [startDate, endDate]
-          
+          // First get inventory records to delete based on criteria
+          let inventoryQuery = Inventory.query().whereBetween('bdate', [startDate, endDate])
           if (stable_id) {
-            eventsQuery += ' AND stable_id = ?'
-            inventoryQuery += ' AND stable_id = ?'
-            params.push(stable_id.toString())
+            inventoryQuery = inventoryQuery.where('stable_id', stable_id)
+          }
+          const inventoryToDelete = await inventoryQuery.select('pky')
+          const pkyList = inventoryToDelete.map(item => item.pky)
+          
+          // Delete events first (foreign key constraint)
+          if (pkyList.length > 0) {
+            const deletedEvents = await Event.query().whereIn('pky', pkyList).delete()
+            deletedCounts.events = Array.isArray(deletedEvents) ? deletedEvents.length : deletedEvents
           }
           
-          eventsQuery += ')'
-          
-          const eventsResult = await Database.rawQuery(eventsQuery, params)
-          deletedCounts.events = eventsResult.rowCount || 0
-          
-          const inventoryResult = await Database.rawQuery(inventoryQuery, params.slice(0, stable_id ? 3 : 2))
-          deletedCounts.inventory = inventoryResult.rowCount || 0
+          // Delete inventory records
+          const deletedInventory = await inventoryQuery.delete()
+          deletedCounts.inventory = Array.isArray(deletedInventory) ? deletedInventory.length : deletedInventory
           
           deletedTables.push('inventory', 'events')
         } else if (table === 'events') {
-          let eventsQuery = 'DELETE FROM events WHERE evdate BETWEEN ? AND ?'
-          let params = [startDate, endDate]
+          // Delete events by date range
+          let eventsQuery = Event.query().whereBetween('evdate', [startDate, endDate])
           
           if (stable_id) {
-            eventsQuery += ' AND pky IN (SELECT pky FROM inventory WHERE stable_id = ?)'
-            params.push(stable_id.toString())
+            // Get inventory pky values for the stable
+            const inventoryPkys = await Inventory.query().where('stable_id', stable_id).select('pky')
+            const pkyList = inventoryPkys.map(item => item.pky)
+            if (pkyList.length > 0) {
+              eventsQuery = eventsQuery.whereIn('pky', pkyList)
+            } else {
+              deletedCounts.events = 0
+              deletedTables.push('events')
+              return response.ok({
+                status: 'success',
+                message: `No events found for stable ${stable_id} in the specified date range`,
+                data: {
+                  clearedTables: deletedTables,
+                  dateRange: { startDate, endDate },
+                  stable_id: stable_id,
+                  deletedCounts
+                }
+              })
+            }
           }
           
-          const eventsResult = await Database.rawQuery(eventsQuery, params)
-          deletedCounts.events = eventsResult.rowCount || 0
+          const deletedEvents = await eventsQuery.delete()
+          deletedCounts.events = Array.isArray(deletedEvents) ? deletedEvents.length : deletedEvents
           deletedTables.push('events')
         }
 
@@ -405,37 +423,49 @@ export default class DataGeneratorController {
       } else {
         // Delete all data (with optional stable_id filter)
         if (table === 'inventory' || table === 'both') {
-          let eventsQuery = 'DELETE FROM events'
-          let inventoryQuery = 'DELETE FROM inventory'
-          let params: any[] = []
-          
           if (stable_id) {
-            eventsQuery += ' WHERE pky IN (SELECT pky FROM inventory WHERE stable_id = ?)'
-            inventoryQuery += ' WHERE stable_id = ?'
-            params = [stable_id.toString()]
-          }
-          
-          const eventsResult = await Database.rawQuery(eventsQuery, params)
-          deletedCounts.events = eventsResult.rowCount || 0
-          
-          const inventoryResult = await Database.rawQuery(inventoryQuery, params)
-          deletedCounts.inventory = inventoryResult.rowCount || 0
-          
-          if (!stable_id) {
+            // Get inventory records for the stable
+            const inventoryToDelete = await Inventory.query().where('stable_id', stable_id).select('pky')
+            const pkyList = inventoryToDelete.map(item => item.pky)
+            
+            // Delete events first
+            if (pkyList.length > 0) {
+              const deletedEvents = await Event.query().whereIn('pky', pkyList).delete()
+              deletedCounts.events = Array.isArray(deletedEvents) ? deletedEvents.length : deletedEvents
+            }
+            
+            // Delete inventory records
+            const deletedInventory = await Inventory.query().where('stable_id', stable_id).delete()
+            deletedCounts.inventory = Array.isArray(deletedInventory) ? deletedInventory.length : deletedInventory
+          } else {
+            // Delete all events first
+            const deletedEvents = await Event.query().delete()
+            deletedCounts.events = Array.isArray(deletedEvents) ? deletedEvents.length : deletedEvents
+            
+            // Delete all inventory
+            const deletedInventory = await Inventory.query().delete()
+            deletedCounts.inventory = Array.isArray(deletedInventory) ? deletedInventory.length : deletedInventory
+            
+            // Reset sequence only when deleting all data
             await Database.rawQuery('ALTER SEQUENCE pky_sequence RESTART WITH 1')
           }
+          
           deletedTables.push('inventory', 'events')
         } else if (table === 'events') {
-          let eventsQuery = 'DELETE FROM events'
-          let params: any[] = []
-          
           if (stable_id) {
-            eventsQuery += ' WHERE pky IN (SELECT pky FROM inventory WHERE stable_id = ?)'
-            params = [stable_id.toString()]
+            // Get inventory pky values for the stable
+            const inventoryPkys = await Inventory.query().where('stable_id', stable_id).select('pky')
+            const pkyList = inventoryPkys.map(item => item.pky)
+            
+            if (pkyList.length > 0) {
+              const deletedEvents = await Event.query().whereIn('pky', pkyList).delete()
+              deletedCounts.events = Array.isArray(deletedEvents) ? deletedEvents.length : deletedEvents
+            }
+          } else {
+            const deletedEvents = await Event.query().delete()
+            deletedCounts.events = Array.isArray(deletedEvents) ? deletedEvents.length : deletedEvents
           }
           
-          const eventsResult = await Database.rawQuery(eventsQuery, params)
-          deletedCounts.events = eventsResult.rowCount || 0
           deletedTables.push('events')
         }
 
