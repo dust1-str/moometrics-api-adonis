@@ -8,7 +8,7 @@ export default class ChatbotController {
   ]
   async sendCommand({ request, response }: HttpContext) {
     try {
-      const { command } = request.only(['command'])
+      const { command, stable_id } = request.only(['command', 'stable_id'])
 
       if (!command) {
         return response.badRequest({
@@ -28,11 +28,11 @@ export default class ChatbotController {
           break
 
         case 'showevents':
-          botResponse = await this.handleShowEvents()
+          botResponse = await this.handleShowEvents(stable_id)
           break
 
         case 'getcowlist':
-          botResponse = this.handleGetCowList()
+          botResponse = await this.handleGetCowList(stable_id)
           break
 
         case 'getcowdetail':
@@ -94,10 +94,11 @@ export default class ChatbotController {
     }
   }
 
-  private async handleShowEvents() {
+  private async handleShowEvents(stable_id: number) {
     const counts = await db.from('events')
       .select('eventtype')
       .count('* as total')
+      .where('stable_id', stable_id)
       .groupBy('eventtype')
 
     const countMap = counts.reduce((acc, row) => {
@@ -118,74 +119,21 @@ export default class ChatbotController {
     }
   }
 
-  private handleGetCowList() {
+  private async handleGetCowList(stable_id: number) {
+    const cows = await db.from('inventory')
+      .select('pky', 'barnnm', 'brd', 'bdate', 'sex')
+      .where('stable_id', stable_id)
     return {
       command: 'getCowList',
       type: 'cow_list',
-      cows: [
-        {
-          id: 1,
-          name: 'Bessie',
-          breed: 'Holstein',
-          age: '3 años',
-          sex: 'F',
-          barnName: 'Corral A'
-        },
-        {
-          id: 2,
-          name: 'Daisy',
-          breed: 'Jersey',
-          age: '2 años',
-          sex: 'F',
-          barnName: 'Corral B'
-        },
-        {
-          id: 3,
-          name: 'Molly',
-          breed: 'Guernsey',
-          age: '4 años',
-          sex: 'F',
-          barnName: 'Corral A'
-        },
-        {
-          id: 4,
-          name: 'Stella',
-          breed: 'Holstein',
-          age: '2 años',
-          sex: 'F',
-          barnName: 'Corral C'
-        },
-        {
-          id: 5,
-          name: 'Luna',
-          breed: 'Jersey',
-          age: '3 años',
-          sex: 'F',
-          barnName: 'Corral B'
-        },
-        {
-          id: 6,
-          name: 'Max',
-          breed: 'Holstein',
-          age: '5 años',
-          sex: 'M',
-          barnName: 'Corral D'
-        },
-        {
-          id: 7,
-          name: 'Rocky',
-          breed: 'Guernsey',
-          age: '6 años',
-          sex: 'M',
-          barnName: 'Corral D'
-        }
-      ],
-      pagination: {
-        currentPage: 1,
-        itemsPerPage: 7,
-        totalItems: 245,
-        totalPages: 35
-      }
+      cows: cows.map(cow => ({
+        id: cow.pky,
+        name: cow.barnnm,
+        breed: cow.brd,
+        birthDate: cow.bdate,
+        sex: cow.sex
+      })),
+      totalCows: cows.length
     }
   }
 
