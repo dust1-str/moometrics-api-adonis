@@ -18,23 +18,23 @@ export default class ChatbotController {
 
       // Procesar comandos
       switch (commandLower) {
-        case 'showInventory':
+        case 'showinventory':
           botResponse = this.handleShowInventory()
           break
 
-        case 'showEvents':
+        case 'showevents':
           botResponse = this.handleShowEvents()
           break
 
-        case 'getCowList':
+        case 'getcowlist':
           botResponse = this.handleGetCowList()
           break
 
-        case 'getCowDetail':
+        case 'getcowdetail':
           botResponse = this.handleGetCowDetail()
           break
 
-        case 'searchCow':
+        case 'searchcow':
           botResponse = this.handleSearchCow()
           break
 
