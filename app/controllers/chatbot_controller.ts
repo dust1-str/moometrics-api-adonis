@@ -98,7 +98,6 @@ export default class ChatbotController {
     const counts = await db.from('events')
       .select('eventtype')
       .count('* as total')
-      .where('stable_id', stable_id)
       .groupBy('eventtype')
 
     const countMap = counts.reduce((acc, row) => {
