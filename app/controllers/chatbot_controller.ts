@@ -36,7 +36,7 @@ export default class ChatbotController {
           break
 
         case 'getcowdetail':
-          botResponse = this.handleGetCowDetail(name)
+          botResponse = await this.handleGetCowDetail(name)
           break
 
         case 'searchcow':
