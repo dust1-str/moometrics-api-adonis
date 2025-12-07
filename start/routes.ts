@@ -21,7 +21,8 @@ const DataGeneratorController = () => import('#controllers/data_generator_contro
 // Rutas Auth
 router.group(() => {
   router.post('/register', [AuthController, 'register']) 
-  router.post('/login', [AuthController, 'login'])        
+  router.post('/login', [AuthController, 'login'])
+  router.post('/verify-otp', [AuthController, 'verifyOtp'])
 }).prefix('/auth')
 
 // Rutas Users
