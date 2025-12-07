@@ -22,8 +22,10 @@ const DataGeneratorController = () => import('#controllers/data_generator_contro
 router.group(() => {
   router.post('/register', [AuthController, 'register']) 
   router.post('/login', [AuthController, 'login'])
-  router.post('/verify-otp', [AuthController, 'verifyOtp'])
 }).prefix('/auth')
+
+// Ruta de verificación OTP (sin protección)
+router.post('/auth/verify-otp', [AuthController, 'verifyOtp'])
 
 // Rutas Users
 router.group(() => {
